@@ -1,0 +1,115 @@
+---
+output: github_document
+always_allow_html: true
+---
+
+This is an introductory article that teaches users how to use the
+zoomerjoin.extended R package to generate embeddings and perform a join on
+them.
+
+## Installation
+
+## Zoomerjoin Development Version
+
+Please note that `zoomerjoin.extended` at the moment depends on the
+*development* version of the `zoomerjoin` package.  To install this package,
+please use the following code:
+
+```{r, eval = FALSE}
+install.packages('zoomerjoin', repos = c('https://beniaminogreen.r-universe.dev', 'https://cloud.r-project.org'))
+```
+
+In the future, this dependency will be relaxed, and you will be able to install
+all of the package dependencies that you need from CRAN.
+
+```{r setup}
+library(zoomerjoin.extended)
+```
+
+## Installing the ONNXRuntime
+
+`zoomerjoin.extended` also uses Microsoft's [ONNX
+Runtime](https://onnxruntime.ai/) to provide speedy inference for the neural
+joins.  Please use the ONNX Runtime [getting started
+guide](https://onnxruntime.ai/getting-started) to install the correct version
+of the runtime. At the moment, only CUDA and CPU backends are supported.
+
+Once this is setup, you may need to point the package to the location the ONNX
+Runtime is installed. You can do this using the `ORT_DYLIB_PATH` environment
+variable as follows:
+
+```{r, eval=F}
+Sys.setenv("ORT_DYLIB_PATH"="/path/to/onnx_runtime/")
+```
+
+```{r, echo=FALSE, include=FALSE, eval=TRUE}
+Sys.setenv("ORT_DYLIB_PATH"="/nix/store/rrp6kppq6jlqj765bqkab2lr6mizhix0-onnxruntime-1.18.1/lib/libonnxruntime.so")
+```
+
+# Basic Tutorial
+
+In this tutorial, I will discuss how to generate embeddings using the [popular all-MiniLM-L6-v2 model on
+HuggingFace](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2).
+The process will be substantially similar for other models trained for the
+'sentence-similarity' task on the hugging face hub.
+
+## Downloading Model Files
+
+First, you must download the model files from the 'files and versions' pane for
+the model on huggingface. To run the neural joins, you need the tokenizer files
+(`tokenizer.json`, and `tokenizer_config.json`), and the model file in an ONNX
+format. This huggingface repository has several versions of the model, and we
+will pick the one called `model_O3.onnx`. This version of the model has some
+optimizations to make it run faster, but can still be run on the CPU.
+
+Download all these files, and put them into a diretory (in this case, we are
+using `_model/`).
+
+```
+_model/
+├── model_O3.onnx
+├── tokenizer_config.json
+└── tokenizer.json
+```
+
+Once you have the model files set up correctly, you can load the model into
+memory, and start generating emeddings. You can do load the model the
+`new_inference_session` function, which takes a path to the directory holding
+the model and tokenizer, and also allows you specify which files hold the model
+and tokenizer if they differ from the defaults ('model.onnx' and
+'tokenizer.json', respectively).
+
+```{r}
+model <- new_inference_session("_model/", model = "model_O3.onnx")
+model
+```
+
+Now you are ready to get going! You can generate embeddings for strings as follows:
+
+```{r}
+generate_embeddings(model, c("the quick brown fox", "jumped over the lazy dog"))
+```
+
+Or join datasets based on embeddings of a variables using a familiar, dplyr-style syntax.
+
+```{r}
+a <- data.frame(
+               name_1 =
+                   c("JP Morgan Chase",
+                     "he was sad",
+                     "he is happy",
+                     "Bank of America",
+                     "the lazy dog was jumped over by the quick brown fox"
+                   )
+               )
+b <- data.frame(
+                name_2 =
+                    c("JP Morgan",
+                      "the man was morose",
+                      "the man was smiling",
+                      "Bank of America",
+                      "the quick brown fox vaulted over the sleeping dog")
+               )
+neural_inner_join(a,b, model, by = c('name_1' = 'name_2'), radius = .5)
+```
+
