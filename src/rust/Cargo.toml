@@ -1,0 +1,20 @@
+[package]
+name = 'zoomerjoin_extended'
+publish = false
+version = '0.1.0'
+edition = '2021'
+
+[lib]
+crate-type = [ 'staticlib' ]
+name = 'zoomerjoin_extended'
+
+[dependencies]
+extendr-api = {version='*', features = ['ndarray']}
+hnsw_rs = "0.3.0"
+ndarray = { version = "0.15.6", features = ["rayon"] }
+ort = {version = "=2.0.0-rc.4", features = [ "fetch-models", "load-dynamic", "cuda" ] }
+ort-sys = {version = "=2.0.0-rc.4"}
+rand = "0.8"
+rayon = "1.6.1"
+tokenizers = { version = ">=0.13.4", default-features = false, features = [ "onig" ] }
+tracing-subscriber = { version = "0.3", default-features = false, features = [ "env-filter", "fmt" ] }
